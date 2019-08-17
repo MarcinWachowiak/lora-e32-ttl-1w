@@ -247,6 +247,8 @@ public:
     /// \return The number of packets successfully transmitted
     virtual uint16_t       txGood();
 
+public:
+
     /// The current transport operating mode
     volatile RHMode     _mode;
 
@@ -297,6 +299,8 @@ public:
 
     /// Channel activity timeout in ms
     unsigned int        _cad_timeout;
+
+private:
 
 };
 

@@ -54,6 +54,34 @@ bool RH_E32::init()
   return true;
 }
 
+bool RH_E32::set_tx_header( uint8_t rx_ADDH, uint8_t rx_ADDL, uint8_t rx_freq, uint8_t tx_ADDH, uint8_t tx_ADDL, uint8_t tx_freq) {
+  _rx_ADDH=rx_ADDH;
+  _rx_ADDL=rx_ADDL;
+  _rx_freq=rx_freq;
+  _tx_ADDH=tx_ADDH;
+  _tx_ADDL=tx_ADDL;
+  _tx_freq=tx_freq;
+
+  //verify
+  if (_rx_ADDH==rx_ADDH && _rx_ADDL==rx_ADDL && _rx_freq==rx_freq && _tx_ADDH==tx_ADDH && _tx_ADDL==tx_ADDL && _tx_freq==tx_freq) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+bool RH_E32::print_tx_header () {
+  // add spirintft in the end
+  Serial.print (_rx_ADDH, DEC);
+  Serial.print (_rx_ADDL, DEC);
+  Serial.print (_rx_freq, DEC);
+  Serial.print (_tx_ADDH, DEC);
+  Serial.print (_tx_ADDL, DEC);
+  Serial.print (_tx_freq, DEC);
+  return 1;
+}
+
 bool RH_E32::reset()
 {
   setOperatingMode(ModeSleep);
@@ -135,7 +163,7 @@ bool RH_E32::getVersion()
   if (result == 4)
     {
       // Successful read
-      //      printBuffer("read version", version, sizeof(version));
+      printBuffer("read version", version, sizeof(version));
       if (version[0] != 0xc3 || version [1] != 0x32)
 	{
 	  // Not an E32
@@ -170,7 +198,7 @@ void RH_E32::waitAuxLow()
 // Check whether the latest received message is complete and uncorrupted
 void RH_E32::validateRxBuf()
 {
-    if (_bufLen < RH_E32_HEADER_LEN)
+    if (_bufLen < RH_E32_RECV_HEADER_LEN)
 	     return; // Too short to be a real message
     if (_bufLen != _buf[0]) {
       return; // Do we have all the message?
@@ -204,20 +232,20 @@ bool RH_E32::available()
 	    _buf[_bufLen++] = data;
 	  }
 	// Now assess what we have
-	if (_bufLen < RH_E32_HEADER_LEN)
+	if (_bufLen < RH_E32_RECV_HEADER_LEN)
 	  {
-	    //	    Serial.println("Incomplete header");
+	    	    Serial.println("Incomplete header");
 	    return false;
 	  }
 	else if (_bufLen < _buf[0])
 	  {
-	    //	    Serial.println("Incomplete message");
+	    	    Serial.println("Incomplete message");
 	    return false;
 	  }
 	else if (   _bufLen > _buf[0]
 		 || _bufLen > RH_E32_MAX_PAYLOAD_LEN)
 	  {
-	    //	    Serial.println("Overrun");
+	    	    Serial.println("Overrun");
 	    clearRxBuf();
 	    _rxBad++;
 	    return false;
@@ -237,9 +265,9 @@ bool RH_E32::recv(uint8_t* buf, uint8_t* len)
     if (buf && len)
     {
 	// Skip the 4 headers that are at the beginning of the rxBuf
-	if (*len > _bufLen - RH_E32_HEADER_LEN)
-	    *len = _bufLen - RH_E32_HEADER_LEN;
-	memcpy(buf, _buf + RH_E32_HEADER_LEN, *len);
+	if (*len > _bufLen - RH_E32_RECV_HEADER_LEN)
+	    *len = _bufLen - RH_E32_RECV_HEADER_LEN;
+	memcpy(buf, _buf + RH_E32_RECV_HEADER_LEN, *len);
     }
     clearRxBuf(); // This message accepted and cleared
     return true;
@@ -257,16 +285,18 @@ bool RH_E32::send(const uint8_t* data, uint8_t len)
   _buf[1] = _rx_ADDL;
   _buf[2] = _rx_freq;
   //verification buf_length
-  _buf[3] = len + RH_E32_HEADER_LEN; 
   //visible message data
+  _buf[3] = len + RH_E32_RECV_HEADER_LEN; 
   _buf[4] = _tx_ADDH;
   _buf[5] = _tx_ADDL;
   _buf[6] = _tx_freq;
 
+
   // REVISIT: do we really have to do this? perhaps just write it after writing the header?
-  memcpy(_buf+RH_E32_HEADER_LEN, data, len);
-  
-  _s->write(_buf, len + RH_E32_HEADER_LEN);
+  memcpy(_buf+RH_E32_SEND_HEADER_LEN, data, len);
+
+  _s->write(_buf, len + RH_E32_SEND_HEADER_LEN);
+
   setMode(RHModeTx);
   _txGood++;
   // Aux will return high when the TX buffer is empty

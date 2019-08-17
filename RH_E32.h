@@ -27,10 +27,11 @@
 //  id
 //  flags
 // The headers are inside the E32 payload
-#define RH_E32_HEADER_LEN 1
+#define RH_E32_SEND_HEADER_LEN 7
+#define RH_E32_RECV_HEADER_LEN 4
 
 // This is the maximum RadioHead user message length that can be supported by this module. Limited by
-#define RH_E32_MAX_MESSAGE_LEN (RH_E32_MAX_PAYLOAD_LEN-RH_E32_HEADER_LEN)
+#define RH_E32_MAX_MESSAGE_LEN (RH_E32_MAX_PAYLOAD_LEN-RH_E32_SEND_HEADER_LEN)
 
 // Commands to alter module behaviour
 #define RH_E32_COMMAND_WRITE_PARAMS_SAVE         0xC0
@@ -300,6 +301,11 @@ class RH_E32 : public RHGenericDriver
     /// This can and should be called multiple times in a timeout loop. You should call this as frequently as possible
     /// whenever a message might be received
     /// \return true if a new, complete, error-free uncollected message is available to be retreived by recv().
+    
+    bool set_tx_header( uint8_t rx_ADDH =0, uint8_t rx_ADDL =0, uint8_t rx_freq=0, uint8_t tx_ADDH=0, uint8_t tx_ADDL=0, uint8_t tx_freq=0);
+
+    bool print_tx_header ();
+
     bool available();
     
     /// If there is a valid message available, copy it to buf and return true
@@ -442,15 +448,10 @@ class RH_E32 : public RHGenericDriver
     bool                _rxBufValid;
 
     uint8_t _rx_ADDH;
-
     uint8_t _rx_ADDL;
-    
     uint8_t _rx_freq;
-    
     uint8_t _tx_ADDH;
-    
     uint8_t _tx_ADDL;
-    
     uint8_t _tx_freq;
 };
 
